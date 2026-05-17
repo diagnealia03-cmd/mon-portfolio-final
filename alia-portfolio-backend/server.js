@@ -17,6 +17,7 @@ const app = express();
 
 // Middleware
 // Remplace 3000 par 5173
+app.disable('x-powered-by');
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
