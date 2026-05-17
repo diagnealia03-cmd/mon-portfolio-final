@@ -1,0 +1,62 @@
+services:
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb_portfolio
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - backend-network        # ✅ uniquement réseau backend
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./alia-portfolio-backend
+      dockerfile: Dockerfile
+    container_name: backend_portfolio
+    ports:
+      - "${BACKEND_PORT}:5000"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+    networks:
+      - backend-network        # ✅ parle à MongoDB
+      - frontend-network       # ✅ parle au frontend
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./alia-portfolio-frontend
+      dockerfile: Dockerfile
+    container_name: frontend_portfolio
+    ports:
+      - "${FRONTEND_PORT}:80"
+    networks:
+      - frontend-network       # ✅ uniquement réseau frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+
+networks:
+  frontend-network:
+    driver: bridge
+  backend-network:
+    driver: bridge
